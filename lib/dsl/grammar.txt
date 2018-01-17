@@ -5,6 +5,19 @@
  */
 
 {
+	function addUniqueElement(v1, array2) {
+      if (v1) {
+        if (array2) {
+          for (let i = 0; i < array2.length; i++) {
+          	var v22=array2[i];
+          	for(var o in v22){
+            	v1[o]=v22[o];
+            }
+          }
+         }
+      }
+      return v1;
+  }
   function addUniqueElements(array1, array2) {
     if (array2) {
       for (let i = 0; i < array2.length; i++) {
@@ -124,16 +137,16 @@ constantDecl
 
 //Entities
 entityDecl
-  = jd:comment? SPACE* ENTITY SPACE* e:ENTITY_NAME SPACE* tableName:entityTableNameDecl? SPACE* eb:entityBody? SPACE*  {
-    return { name: e, tableName: tableName ? tableName: e, body: eb, javadoc: jd };
+  = jd:comment? SPACE* ENTITY SPACE* e:ENTITY_NAME SPACE* tableName:entityTableNameDecl? SPACE* eb:entityBody? SPACE* eabs:extendedAttributeList? SPACE_WITHOUT_NEWLINE*  {
+    return addUniqueElement({ name: e, tableName: tableName ? tableName: e, body: eb, javadoc: jd},eabs);
   }
-  / ENTITY SPACE* e:ENTITY_NAME SPACE* eb:entityBody? { return { name: e, body: eb, javadoc: '' }; }
+  / ENTITY SPACE* e:ENTITY_NAME SPACE* eb:entityBody? eabs:extendedAttributeList? SPACE_WITHOUT_NEWLINE*{ return addUniqueElement({ name: e, body: eb, javadoc: ''},eabs);; }
 
 entityTableNameDecl
   = '(' SPACE* name:[A-z0-9_-]+ SPACE* ')' { return name.join(''); }
 
 entityBody
-  = '{' SPACE* fdl:fieldDeclList SPACE* '}' { return fdl; }
+  = '{' SPACE* fdl:fieldDeclList SPACE* '}'  { return fdl; }
   / '' { return []; }
 
 fieldDeclList
@@ -144,6 +157,9 @@ fieldDeclList
 
 validationList
   = v:validation SPACE_WITHOUT_NEWLINE* vl:validationList { return addUniqueElements([v], vl); }
+  / '' { return []; }
+extendedAttributeList
+  = v:extendedAttribute SPACE_WITHOUT_NEWLINE* vl:extendedAttributeList { return addUniqueElements([v], vl); }
   / '' { return []; }
 
 //Relationship
@@ -344,6 +360,7 @@ type = head:[A-Z]tail:[A-z0-9]* { return `${head}${tail.join('')}`; }
 
 validation
   = REQUIRED { return { key: 'required', value: '' }; }
+  / PRIMARYKEY { return { key: 'ifPrimaryKey', value: true }; }
   / MINLENGTH SPACE* '(' SPACE* int:INTEGER SPACE* ')' { return { key: 'minlength', value: int }; }
   / MINLENGTH SPACE* '(' SPACE* constantName:CONSTANT_NAME SPACE* ')' { return { key: 'minlength', value: constantName, constant: true }; }
   / MAXLENGTH SPACE* '(' SPACE* int:INTEGER SPACE* ')' { return { key: 'maxlength', value: int }; }
@@ -356,7 +373,17 @@ validation
   / MIN SPACE* '(' SPACE* constantName:CONSTANT_NAME SPACE* ')' { return { key: 'min', value: constantName, constant: true }; }
   / MAX SPACE* '(' SPACE* int:INTEGER SPACE* ')' { return { key: 'max', value: int };}
   / MAX SPACE* '(' SPACE* constantName:CONSTANT_NAME SPACE* ')' { return { key: 'max', value: constantName, constant: true }; }
+  / QUOTETYPE SPACE* '(' SPACE* string:STRING SPACE* ')' { return { key: 'quoteType', value: string };}
+  / QUOTECODE SPACE* '(' SPACE* string:STRING SPACE* ')' { return { key: 'quoteCode', value: string };}
+
   / PATTERN SPACE* '(' SPACE* FORWARD_SLASH regex:REGEX FORWARD_SLASH SPACE* ')' { return { key: 'pattern', value: regex }; }
+
+extendedAttribute
+  = DBNAME SPACE* '(' SPACE* string:STRING SPACE* ')' { return { dbName: string };}
+  / CACHETYPE SPACE* '(' SPACE* string:STRING SPACE* ')' { return { cacheType: string };}
+  / ENTITYPATH SPACE* '(' SPACE* string:STRING SPACE* ')' { return { entityPath: string };}
+  / PATTERN SPACE* '(' SPACE* FORWARD_SLASH regex:REGEX FORWARD_SLASH SPACE* ')' { return { key: 'pattern', value: regex }; }
+
 
 // Comments
 comment = commentStart notAComment:notAComment* commentStop { return notAComment.join(''); }
@@ -398,6 +425,14 @@ MAXBYTES = 'maxbytes'
 MAX = 'max'
 MIN = 'min'
 PATTERN = 'pattern'
+//自定义
+PRIMARYKEY = 'primaryKey'
+QUOTETYPE = 'quoteType'
+QUOTECODE = 'quoteCode'
+//table
+DBNAME = 'dbName'
+CACHETYPE = 'cacheType'
+ENTITYPATH = 'entityPath'
 
 REGEX = pattern:[^\n\r/]* { return pattern.join(''); }
 
@@ -413,3 +448,6 @@ FIELD_NAME = head:[a-zA-Z]tail:[A-z0-9]* { return `${head}${tail.join('')}`; }
 SPACE = ['\n'|'\t'|'\r'|' '|\u2028|\u2029]
 SPACE_WITHOUT_NEWLINE = ['\t'|' '|\u2028|\u2029]
 FORWARD_SLASH = [/]
+STRING = name:[A-z0-9]+ { return name.join(''); }
+
+
